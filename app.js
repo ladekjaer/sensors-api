@@ -3,15 +3,7 @@ const { Pool, Client } = require('pg')
 require('dotenv').config()
 
 const PORT = process.env.PORT
-const db_config = {
-	host: process.env.DB_HOST,
-	port: process.env.DB_PORT,
-	database: process.env.DB_NAME,
-	user: process.env.DB_USER,
-	password: process.env.DB_USER_PASSWORD
-}
-
-const pool = new Pool(db_config)
+const pool = new Pool()
 
 app.post('/stats', function(req, res) {
     req.setEncoding('utf8')
