@@ -25,17 +25,19 @@ app.post('/stats', function(req, res) {
         		res.writeHead(401, {'content-type': 'text/plain; charset=utf8'})
         		return res.end('Invalid access key.\n')
         	} else {
-        		commitStats(stats, user.user_id, function(err) {
-		            if (err) {
-		                res.writeHead(500, {'content-type': 'text/plain; charset=utf8'});
+        		commitStats(stats, user.user_id, function(err, measures) {
+        			if (err.length === measures.length) {
+        				// This response must be better
+        				res.writeHead(500, {'content-type': 'text/plain; charset=utf8'});
 		                res.write('Error commit to database.\n');
 		                res.write('The database is as before the HTTP request.\n');
 		                res.end()
 		                logError(err)
-		            } else {
-		                res.writeHead(201, {'content-type': 'text/plain; charset=utf8'})
-		                res.end('Stats successfully committed to the database.\n')
+        			} else {
+        				res.writeHead(201, {'content-type': 'text/plain; charset=utf8'})
+		                res.end(JSON.stringify(measures, null, 4))
 		            }
+		            console.log(measures)
 		        })
         	}
         })
@@ -69,17 +71,25 @@ function verifyAccessKey(access_key, callback) {
 
 function commitStats(stats, owner_id, callback) {
 	const sql = 'INSERT INTO temperature\n'
-			+ '(hostname, pi_id, thermometer_id, capture_time, temperature, owner_id)\n'
+			+ '(hostname, pi_id, thermometer_id, capture_time, temperature, owner_id, uuid)\n'
 			+ 'VALUES\n'
-			+ '($1::text, $2::text, $3::text, $4::timestamptz, $5::float, $6::integer);'
+			+ '($1::text, $2::text, $3::text, $4::timestamptz, $5::float, $6::integer, $7::uuid);'
+
+	let measures = []
+
+	let errors = []
+	
+	let counter = 0
 	stats.forEach(function(stat) {
+		console.log('Counter: ', counter)
 		const values = [
 			stat.hostname,
 			stat.pi_id,
 			stat.thermostat_id,
 			stat.timestamp,
 			stat.temp,
-			owner_id
+			owner_id,
+			stat.uuid || null
 		]
 
 		const query = {
@@ -91,9 +101,24 @@ function commitStats(stats, owner_id, callback) {
 		pool.query(query, (err, res) => {
 			if (err) {
 				logError(err)
-				return callback(err, false)
-			} else {
-				return callback(null, res)
+				errors.push(err)			
+			}
+
+			measures.push({
+				uuid: stat.uuid,
+				status: (err ? 'failed' : 'succes'),
+				error: (err ? err.detail : null),
+				result: (res ? {
+					command: res.command,
+					rowCount: res.rowCount,
+					rows: res.rows,
+					rowAsArray: res.rowAsArray
+				} : undefined)
+			})
+
+			counter++
+			if (counter === stats.length) {
+				return callback(errors, measures)
 			}
 		})
 	})
