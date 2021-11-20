@@ -26,10 +26,7 @@ app.post('/stats', function(req, res) {
         	} else {
         		commitStats(stats, user.user_id, function(err, measures) {
         			if (err) {
-        				res.writeHead(500, {'content-type': 'text/plain; charset=utf8'});
-		                res.write('Error commit to database.\n');
-		                res.write('The database is as before the HTTP request.\n');
-		                res.end()
+        				res.status(500).json({error: 'database_error'})
 		                logError(err)
         			} else {
 		                res.status(201).json(measures)
