@@ -1,4 +1,5 @@
-const app = require('root')()
+const express = require('express')
+const app = express()
 const { Pool, Client } = require('pg')
 require('dotenv').config()
 
@@ -16,14 +17,12 @@ app.post('/stats', function(req, res) {
         try {
             stats = JSON.parse(body)
         } catch (err) {
-            res.writeHead(400, {'content-type': 'text/plain; charset=utf8'});
-            return res.end('The body is not well-formed JSON.\n');
+            return res.status(400).json({error: 'invalid_json'})
         }
         let access_key = req.headers['access-key']
         verifyAccessKey(access_key, function(err, user) {
         	if (err || !user) {
-        		res.writeHead(401, {'content-type': 'text/plain; charset=utf8'})
-        		return res.end('Invalid access key.\n')
+        		return res.status(401).json({error: 'invalid_access_key'})
         	} else {
         		commitStats(stats, user.user_id, function(err, measures) {
         			if (err) {
@@ -33,8 +32,7 @@ app.post('/stats', function(req, res) {
 		                res.end()
 		                logError(err)
         			} else {
-        				res.writeHead(201, {'content-type': 'text/plain; charset=utf8'})
-		                res.end(JSON.stringify(measures, null, 4))
+		                res.status(201).json(measures)
 		            }
 
 		            let accepted = measures.filter(m => m.status === 'accepted')
