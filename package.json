@@ -1,6 +1,6 @@
 {
   "name": "sensors-api",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "HTTP server listening form DS18B20 sensors and saving those to a database (PostgreSQL). ",
   "main": "app.js",
   "scripts": {
