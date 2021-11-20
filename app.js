@@ -68,10 +68,10 @@ function verifyAccessKey(access_key, callback) {
 }
 
 function commitStats(stats, owner_id, callback) {
-	const sql = 'INSERT INTO temperature\n'
-			+ '(hostname, pi_id, thermometer_id, capture_time, temperature, owner_id)\n'
-			+ 'VALUES\n'
-			+ '($1::text, $2::text, $3::text, $4::timestamptz, $5::float, $6::integer);'
+	const sql =	`INSERT INTO temperature
+				(hostname, pi_id, thermometer_id, capture_time, temperature, owner_id)
+				VALUES
+				($1::text, $2::text, $3::text, $4::timestamptz, $5::float, $6::integer);`
 	stats.forEach(function(stat) {
 		const values = [
 			stat.hostname,
