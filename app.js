@@ -26,8 +26,7 @@ app.post('/stats', function(req, res) {
         		return res.end('Invalid access key.\n')
         	} else {
         		commitStats(stats, user.user_id, function(err, measures) {
-        			if (err.length === measures.length) {
-        				// This response must be better
+        			if (err) {
         				res.writeHead(500, {'content-type': 'text/plain; charset=utf8'});
 		                res.write('Error commit to database.\n');
 		                res.write('The database is as before the HTTP request.\n');
@@ -37,7 +36,12 @@ app.post('/stats', function(req, res) {
         				res.writeHead(201, {'content-type': 'text/plain; charset=utf8'})
 		                res.end(JSON.stringify(measures, null, 4))
 		            }
-		            console.log(measures)
+
+		            let accepted = measures.filter(m => m.status === 'accepted')
+		            let rejected = measures.filter(m => m.status === 'rejected')
+
+		            log('%s of %s measures from %s accepted (%s rejected)',
+		            	accepted.length, measures.length, stats[0].pi_id, rejected.length)
 		        })
         	}
         })
@@ -81,7 +85,6 @@ function commitStats(stats, owner_id, callback) {
 	
 	let counter = 0
 	stats.forEach(function(stat) {
-		console.log('Counter: ', counter)
 		const values = [
 			stat.hostname,
 			stat.pi_id,
@@ -100,13 +103,17 @@ function commitStats(stats, owner_id, callback) {
 
 		pool.query(query, (err, res) => {
 			if (err) {
-				logError(err)
-				errors.push(err)			
+				if (err.constraint && err.constraint === 'temperature_uuid_key') {
+					logError(err.detail)
+				} else {
+					logError(err)
+					errors.push(err)
+				}
 			}
 
 			measures.push({
 				uuid: stat.uuid,
-				status: (err ? 'failed' : 'succes'),
+				status: (err ? 'rejected' : 'accepted'),
 				error: (err ? err.detail : null),
 				result: (res ? {
 					command: res.command,
@@ -116,9 +123,8 @@ function commitStats(stats, owner_id, callback) {
 				} : undefined)
 			})
 
-			counter++
-			if (counter === stats.length) {
-				return callback(errors, measures)
+			if (++counter === stats.length) {
+				return callback(errors.length ? errors : null, measures)
 			}
 		})
 	})
