@@ -7,6 +7,7 @@ CREATE TABLE temperature (
   , temperature double precision NOT NULL
   , server_time timestamp with time zone DEFAULT now()
   , owner_id integer -- ADD: contraint to users.user_id
+  , uuid uuid UNIQUE -- UNIQUE allows multiply NULL values
 );
 
 CREATE INDEX capture_time_idx ON temperature (capture_time);
