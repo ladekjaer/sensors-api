@@ -7,40 +7,40 @@ const PORT = process.env.PORT
 const pool = new Pool()
 
 app.post('/stats', function(req, res) {
-    req.setEncoding('utf8')
-    let body = ''
-    req.on('data', function(chunk) {
-        body += chunk
-    })
-    req.on('end', function() {
-        let stats
-        try {
-            stats = JSON.parse(body)
-        } catch (err) {
-            return res.status(400).json({error: 'invalid_json'})
-        }
-        let access_key = req.headers['access-key']
-        verifyAccessKey(access_key, function(err, user) {
-        	if (err || !user) {
-        		return res.status(401).json({error: 'invalid_access_key'})
-        	} else {
-        		commitStats(stats, user.user_id, function(err, measures) {
-        			if (err) {
-        				res.status(500).json({error: 'database_error'})
-		                logError(err)
-        			} else {
-		                res.status(201).json(measures)
-		            }
+	req.setEncoding('utf8')
+	let body = ''
+	req.on('data', function(chunk) {
+		body += chunk
+	})
+	req.on('end', function() {
+		let stats
+		try {
+			stats = JSON.parse(body)
+		} catch (err) {
+			return res.status(400).json({error: 'invalid_json'})
+		}
+		let access_key = req.headers['access-key']
+		verifyAccessKey(access_key, function(err, user) {
+			if (err || !user) {
+				return res.status(401).json({error: 'invalid_access_key'})
+			} else {
+				commitStats(stats, user.user_id, function(err, measures) {
+					if (err) {
+						res.status(500).json({error: 'database_error'})
+						logError(err)
+					} else {
+						res.status(201).json(measures)
+					}
 
-		            let accepted = measures.filter(m => m.status === 'accepted')
-		            let rejected = measures.filter(m => m.status === 'rejected')
+					let accepted = measures.filter(m => m.status === 'accepted')
+					let rejected = measures.filter(m => m.status === 'rejected')
 
-		            log('%s of %s measures from %s accepted (%s rejected)',
-		            	accepted.length, measures.length, stats[0].pi_id, rejected.length)
-		        })
-        	}
-        })
-    })
+					log('%s of %s measures from %s accepted (%s rejected)',
+						accepted.length, measures.length, stats[0].pi_id, rejected.length)
+				})
+			}
+		})
+	})
 })
 
 app.listen(PORT, function() {
@@ -49,14 +49,14 @@ app.listen(PORT, function() {
 
 function verifyAccessKey(access_key, callback) {
 	let sql = `	SELECT
-				    user_id
-				     , role_id
-				     , k.key
+					user_id
+					 , role_id
+					 , k.key
 				FROM
-				    users u
-				        RIGHT OUTER JOIN access_keys k on k.owner_id = u.user_id
+					users u
+						RIGHT OUTER JOIN access_keys k on k.owner_id = u.user_id
 				WHERE
-				    k.key = $1::text;`
+					k.key = $1::text;`
 	pool.query(sql, [access_key], (err, res) => {
 		if (err) {
 			logError(err)
