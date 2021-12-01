@@ -98,26 +98,34 @@ function commitStats(stats, owner_id, callback) {
 		}
 
 		pool.query(query, (err, res) => {
-			if (err) {
-				if (err.constraint && err.constraint === 'temperature_uuid_key') {
-					logError(err.detail)
-				} else {
-					logError(err)
-					errors.push(err)
-				}
-			}
 
-			measures.push({
+			let measure = {
 				uuid: stat.uuid,
-				status: (err ? 'rejected' : 'accepted'),
-				error: (err ? err.detail : null),
 				result: (res ? {
 					command: res.command,
 					rowCount: res.rowCount,
 					rows: res.rows,
 					rowAsArray: res.rowAsArray
 				} : undefined)
-			})
+			}
+
+			if (err && err.constraint && err.constraint === 'temperature_uuid_key') {
+				// The measurement has already been comitted to the database
+				measure.status = 'already accepted'
+				measure.error = err.detail
+				logError(err.detail)
+			} else if (err) {
+				// An actual error has occurred
+				measure.status = 'rejected'
+				measure.error = err.detail
+				logError(err)
+				errors.push(err)
+			} else {
+				// No error has occurred
+				measure.status = 'accepted'
+			}
+
+			measures.push(measure)
 
 			if (++counter === stats.length) {
 				return callback(errors.length ? errors : null, measures)
