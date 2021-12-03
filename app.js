@@ -20,11 +20,11 @@ app.post('/stats', function(req, res) {
 			return res.status(400).json({error: 'invalid_json'})
 		}
 		let access_key = req.headers['access-key']
-		verifyAccessKey(access_key, function(err, user) {
-			if (err || !user) {
+		verifyAccessKey(access_key, function(err, user_with_key) {
+			if (err || !user_with_key) {
 				return res.status(401).json({error: 'invalid_access_key'})
 			} else {
-				commitStats(stats, user.user_id, function(err, measures) {
+				commitStats(stats, user_with_key, function(err, measures) {
 					if (err) {
 						res.status(500).json({error: 'database_error'})
 						logError(err)
@@ -51,6 +51,7 @@ function verifyAccessKey(access_key, callback) {
 	let sql = `	SELECT
 					user_id
 					 , role_id
+					 , k.key_id
 					 , k.key
 				FROM
 					users u
@@ -68,11 +69,11 @@ function verifyAccessKey(access_key, callback) {
 	})
 }
 
-function commitStats(stats, owner_id, callback) {
+function commitStats(stats, user_with_key, callback) {
 	const sql =	`INSERT INTO temperature
-				(hostname, pi_id, thermometer_id, capture_time, temperature, owner_id, uuid)
+				(hostname, pi_id, thermometer_id, capture_time, temperature, owner_id, access_key_id, uuid)
 				VALUES
-				($1::text, $2::text, $3::text, $4::timestamptz, $5::float, $6::integer, $7::uuid);`
+				($1::text, $2::text, $3::text, $4::timestamptz, $5::float, $6::integer, $7::integer, $8::uuid);`
 
 	let measures = []
 
@@ -87,7 +88,8 @@ function commitStats(stats, owner_id, callback) {
 			stat.thermostat_id,
 			stat.timestamp,
 			stat.temp,
-			owner_id,
+			user_with_key.user_id,
+			user_with_key.key_id,
 			stat.uuid || null
 		]
 
