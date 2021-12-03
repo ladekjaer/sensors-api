@@ -72,9 +72,9 @@ function verifyAccessKey(access_key, callback) {
 
 function commitStats(stats, user_with_key, callback) {
 	const sql =	`INSERT INTO temperature
-				(hostname, pi_id, thermometer_id, capture_time, temperature, owner_id, access_key_id, uuid)
+				(hostname, pi_id, thermometer_id, capture_time, temperature, access_key_id, uuid)
 				VALUES
-				($1::text, $2::text, $3::text, $4::timestamptz, $5::float, $6::integer, $7::integer, $8::uuid);`
+				($1::text, $2::text, $3::text, $4::timestamptz, $5::float, $6::integer, $7::uuid);`
 
 	let measures = []
 
@@ -89,7 +89,6 @@ function commitStats(stats, user_with_key, callback) {
 			stat.thermostat_id,
 			stat.timestamp,
 			stat.temp,
-			user_with_key.user_id,
 			user_with_key.key_id,
 			stat.uuid || null
 		]
