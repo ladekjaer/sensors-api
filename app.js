@@ -57,7 +57,8 @@ function verifyAccessKey(access_key, callback) {
 					users u
 						RIGHT OUTER JOIN access_keys k on k.owner_id = u.user_id
 				WHERE
-					k.key = $1::text;`
+					k.status = 'enabled'
+					AND k.key = $1::text;`
 	pool.query(sql, [access_key], (err, res) => {
 		if (err) {
 			logError(err)
