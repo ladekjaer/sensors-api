@@ -1,5 +1,7 @@
 # Sensors API
 
+**NB: This project has been deprecated.**
+
 This webapp is a http server running to receive data from sensors and saving it to a database. Data can be sent by the [Sensors Client for Raspberry Pi Zero W](https://github.com/ladekjaer/sensors-client-raspberry-pi-zero-w).
 
 ## Setup
